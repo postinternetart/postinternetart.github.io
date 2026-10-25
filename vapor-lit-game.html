@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Vapor-Literature</title>
+<title>Vapor-Literaturey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Major+Mono+Display&family=Martian+Mono:wght@300;400;600&display=swap">
@@ -188,6 +188,12 @@ body.touch .d-only{display:none}
 .ix-ach{display:flex;flex-wrap:wrap;gap:8px}
 .ix-ach span{font-size:10.5px;padding:5px 9px;background:var(--bar-hi);color:var(--dim)}
 .ix-ach span.on{background:var(--yellow);color:var(--bar)}
+.ix-arch{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.ix-arch button{display:grid;gap:3px;align-content:start;text-align:left;padding:8px 10px;background:var(--bar-hi);min-width:0}
+.ix-arch button:hover{background:var(--track)}
+.ix-arch b{font-family:var(--f-pixel);font-weight:400;font-size:12.5px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ix-arch span{font-size:10px;color:var(--dim)}
+.ix-arch p{margin:0;font-size:11px;color:var(--dim)}
 
 /* ---------- fragment card + toasts ---------- */
 #frag{position:fixed;left:50%;bottom:calc(var(--bot) + 64px);transform:translateX(-50%);width:min(540px,calc(100% - 32px));z-index:15;padding:14px 16px;display:grid;gap:9px;animation:glin .35s steps(5) both}
@@ -209,6 +215,7 @@ body.touch .d-only{display:none}
   .brand{padding:8px 10px 7px}
   .brand-name{font-size:15px}
   .level{width:min(230px,48vw)}
+  .lv-name{white-space:normal;line-height:1.25}
   #radar{width:92px;height:92px}
   .stats{min-width:0;padding:6px 9px}
   .stats span{font-size:9.5px}
@@ -249,7 +256,7 @@ body.touch .d-only{display:none}
   <div class="hud-tr">
     <div class="radar-wrap blk c"><canvas id="radar" aria-label="Radar: book and fragment positions around you"></canvas></div>
     <div class="stats blk">
-      <div><span>fragments</span><b id="st-frag">0/15</b></div>
+      <div><span>fragments</span><b id="st-frag">0/60</b></div>
       <div><span>pages read</span><b id="st-pages">0/104</b></div>
       <div><span>books done</span><b id="st-books">0/5</b></div>
     </div>
@@ -278,7 +285,7 @@ body.touch .d-only{display:none}
     <div class="t-line l1">Vapor</div>
     <div class="t-line l2">Literature</div>
     <div class="t-jp">浮遊図書館 · 文学ゲーミフィケーション</div>
-    <p class="t-desc" style="margin:0">Vapor-Literature / Post-internet literature. Walk up to a cover and click it to open the book. <b>Pages you read</b>, <b>fragments</b> you find in the dunes and <b>books you finish</b> all raise your reader level.</p>
+    <p class="t-desc" style="margin:0">Vapor-Literature / Post-Internet Literature. Walk up to a cover and click it to open the book. <b>Pages you read</b>, <b>fragments</b> you find in the dunes and <b>books you finish</b> all raise your reader level.</p>
     <div class="t-back" id="t-back" hidden></div>
     <div class="t-warn" id="t-warn" hidden></div>
     <div class="t-actions">
@@ -296,6 +303,8 @@ body.touch .d-only{display:none}
     <div id="ix-list" style="display:grid;gap:10px"></div>
     <div class="lbl">achievements</div>
     <div class="ix-ach" id="ix-ach"></div>
+    <div class="lbl" id="ix-arch-lbl">fragment archive</div>
+    <div class="ix-arch" id="ix-arch"></div>
   </div>
 </div>
 
@@ -418,15 +427,61 @@ const FRAGS = [
   { b:3, p:4,  kind:'manifesto fragment', t:"Venerable post-internet Hypermodernity // Take me, I'm ready!" },
   { b:4, p:7,  kind:'poem fragment', t:'Think of something ultramodern, quickly!' },
   { b:4, p:14, kind:'poem fragment', t:'Advise: wear weird clothes.' },
-  { b:4, p:23, kind:'poem fragment', t:'Leave the apartment quickly with a bowl of porridge. Is this a sort of modern witchcraft?' }
+  { b:4, p:23, kind:'poem fragment', t:'Leave the apartment quickly with a bowl of porridge. Is this a sort of modern witchcraft?' },
+  { b:0, p:3, kind:"aesthetic unlocked", t:"Dada New Vandal" },
+  { b:0, p:4, kind:"aesthetic unlocked", t:"Degenerate Digital Expressionism" },
+  { b:0, p:6, kind:"aesthetic unlocked", t:"Vapor-Oceanwave Impressionism" },
+  { b:0, p:7, kind:"aesthetic unlocked", t:"Augmented Surreal Stellarpunk" },
+  { b:0, p:8, kind:"aesthetic unlocked", t:"Surreal Biotechnopaganism" },
+  { b:0, p:9, kind:"aesthetic unlocked", t:"Decadent Plastic Ecowave" },
+  { b:0, p:11, kind:"aesthetic unlocked", t:"Hysterical Maximalism" },
+  { b:1, p:4, kind:"tweet recovered", t:"The silence of the internet sometimes scares me." },
+  { b:1, p:5, kind:"tweet recovered", t:"Someone told me that God is made of antimatter and lives in a parallel universe." },
+  { b:1, p:6, kind:"tweet recovered", t:"You always have the best ideas when you have nothing to write them down." },
+  { b:1, p:7, kind:"tweet recovered", t:"Almost every day my shampoo slips out of my hand." },
+  { b:1, p:8, kind:"tweet recovered", t:"Perhaps the best word to describe my personality is \"meta-narcissist\"." },
+  { b:1, p:9, kind:"tweet recovered", t:"Whenever I see a plane in the night sky, I look twice to make sure it's not a UFO." },
+  { b:1, p:10, kind:"tweet recovered", t:"Electric toothbrushes are the most useless thing ever created." },
+  { b:1, p:11, kind:"tweet recovered", t:"I am the messiah of the Internet." },
+  { b:1, p:12, kind:"tweet recovered", t:"I think about Floral Shoppe every day." },
+  { b:1, p:13, kind:"tweet recovered", t:"Is the Internet becoming a chaotic network? I think so, and we need to discover the strange attractors of this chaotic graph." },
+  { b:1, p:15, kind:"tweet recovered", t:"We really need to develop some kind of ultra-fast reading platform." },
+  { b:2, p:3, kind:"poem fragment", t:"I love living highly anxious and stressed all the time and I'm not being ironic." },
+  { b:2, p:8, kind:"essay fragment", t:"Our Universe / Is just another / Indistinct [atom] / Among the infinity / Of Universes-atoms" },
+  { b:2, p:10, kind:"poem fragment", t:"I'm not such a lovely person to talk about real-life things but I'm a really cool person to talk about ludic things." },
+  { b:2, p:12, kind:"poem fragment", t:"I still do not know what ambrosia means… anyways this word gives me an impression of something e t h e r e a l. W e i r d." },
+  { b:2, p:13, kind:"poem fragment", t:"We need urgently a messiah to announce good news for the music industry." },
+  { b:2, p:15, kind:"poem fragment", t:"Normcore and health goth are trends that were born dead." },
+  { b:2, p:20, kind:"poem fragment", t:"Why there is not a virtual archive for my life? well, this is irrelevant anyway so, can I access the world’s Akashic records, please?" },
+  { b:2, p:31, kind:"confession recovered", t:"I wish I was blue. It would be so much more fun to eat blue fruit Jell-O on a rainy day." },
+  { b:2, p:32, kind:"confession recovered", t:"My afternoon habits include watching some boring news, drinking a lot of hot chocolate, and being very careful not to get my slippers wet." },
+  { b:2, p:34, kind:"story fragment", t:"What kind of planet has green leaves once the violet color was always available for usage? I mean, it's absurd, right?" },
+  { b:2, p:35, kind:"story fragment", t:"My grandfather was a seagull while I saw a celebrity on the tram." },
+  { b:3, p:3, kind:"manifesto fragment", t:"And 800 minutes of Post-Vaporwave contemplation //" },
+  { b:3, p:3, kind:"manifesto fragment", t:"On the edge of this haunted Internet //" },
+  { b:3, p:4, kind:"manifesto fragment", t:"Breaking rationality through semantic superficiality //" },
+  { b:3, p:4, kind:"manifesto fragment", t:"The last breath of this intellectuality that, with pharaonic pretension, threatens the collective unconscious with its most innovative weapon of massification: // The Hyperinternetwave." },
+  { b:4, p:3, kind:"poem fragment", t:"In the far reaches of YouTube / The emergence of new micro-genres / Of media art / Oddly aesthetic / Located at the vertices of random graphs / And small-world networks" },
+  { b:4, p:4, kind:"poem fragment", t:"Elevator music / The exaltation of failure / The aesthetics of Windows 95 / Casual statues and public domain stuff" },
+  { b:4, p:4, kind:"poem fragment", t:"Are you a surrealistic yuppie? / If you are, then pay attention / Because this may be your last 美的." },
+  { b:4, p:5, kind:"poem fragment", t:"In the silence of the internet / An unpredictable flow of emotions / Subjectives / Has led us, oddly enough / To an artistic syncretism" },
+  { b:4, p:6, kind:"poem fragment", t:"Shattering of the aesthetics? / Aesthetics of the future? / Or just a mistaken aesthetic?" },
+  { b:4, p:8, kind:"poem fragment", t:"I'm sure there is an algorithm / Able to lead us to the so anticipated / Ultramodern Art." },
+  { b:4, p:20, kind:"poem fragment", t:"Resting on the couch watching TV is so 2004… and I really don't know how to explain why I have this odd impression." },
+  { b:4, p:21, kind:"poem fragment", t:"I have some impressions about internet specially about Twitter Tumblr and Myspace / a vibrant nostalgic feeling blending with void and regret." },
+  { b:4, p:25, kind:"poem fragment", t:"There is a magical thing about lying on the couch and doing nothing the entire day." },
+  { b:4, p:27, kind:"poem fragment", t:"It’s sad to have become a biblioklept in college and have ended up hanging out with nauseant people." },
+  { b:4, p:29, kind:"poem fragment", t:"Everything I want in this life is to have a transparent soul and reach the Full Existence." },
+  { b:4, p:30, kind:"poem fragment", t:"I can't deal with my emotions … whatever I can always buy a lot of candies and watch Gilmore Girls / deal with it." }
 ];
-const LEVELS = [[0,'casual statue'],[12,'surreal yuppie'],[40,'bedroom-pop messiah'],[90,'post-internet esoteric'],[160,'meta-narcissist'],[250,'messiah of the internet']];
+const LEVELS = [[0,'casual statue'],[15,'surreal yuppie'],[50,'bedroom-pop messiah'],[110,'post-internet esoteric'],[200,'meta-narcissist'],[310,'ultramodern artist'],[430,'messiah of the internet']];
 const ACH = [
   ['first_contact','first contact','Opened your first floating book.'],
   ['page_turner','page turner','25 pages read.'],
   ['deep_reader','deep reader','Finished a whole book.'],
   ['glitch_collector','glitch collector','Found 5 fragments in the dunes.'],
-  ['archaeologist','aesthetic archaeologist','Found all 15 fragments.'],
+  ['biblioklept','biblioklept','Found 30 fragments.'],
+  ['archaeologist','aesthetic archaeologist','Found all 60 fragments.'],
   ['messiah','messiah of the internet','Finished all five books.']
 ];
 const TOTAL_PAGES = BOOKS.reduce((s, b) => s + b.pages, 0);
@@ -529,6 +584,7 @@ function checkAchievements(){
   if (booksDone() >= 1) grant('deep_reader');
   if (booksDone() >= BOOKS.length) grant('messiah');
   if (save.frags.length >= 5) grant('glitch_collector');
+  if (save.frags.length >= 30) grant('biblioklept');
   if (save.frags.length >= FRAGS.length) grant('archaeologist');
 }
 function updateHUD(){
@@ -780,10 +836,14 @@ function initWorld(){
   // ---- fragments ----
   const fragObjs = [];
   { const rnd = mulberry32(2026); const fragGeo = new THREE.OctahedronGeometry(0.55, 0), wireGeo = new THREE.OctahedronGeometry(1.0, 0); const fc = [COL.magenta, COL.cyan, COL.yellow];
+    const N = FRAGS.length, order = FRAGS.map((_, i) => i), slot = new Array(N), placed = [];
+    for (let i = N - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    order.forEach((fi, k) => { slot[fi] = k; });
     FRAGS.forEach((f, i) => {
-      let x, z, tries = 0;
-      do { const a = (i / FRAGS.length) * Math.PI * 2 + (rnd() - 0.5) * 0.9, r = 16 + rnd() * 128; x = Math.cos(a) * r; z = Math.sin(a) * r; tries++; }
-      while (tries < 40 && (BOOKS.some((b) => Math.hypot(b.pos[0] - x, b.pos[1] - z) < 13) || Math.hypot(x, z - 18) < 10));
+      const k = slot[i]; let x, z, tries = 0;
+      do { const a = k * 2.39996323 + (rnd() - 0.5) * 0.6, r = 16 + Math.sqrt((k + 0.5) / N) * 166 + (rnd() - 0.5) * 12; x = Math.cos(a) * r; z = Math.sin(a) * r; tries++; }
+      while (tries < 60 && (BOOKS.some((b) => Math.hypot(b.pos[0] - x, b.pos[1] - z) < 13) || Math.hypot(x, z - 18) < 10 || placed.some((q) => Math.hypot(q[0] - x, q[1] - z) < 10)));
+      placed.push([x, z]);
       const col = fc[i % 3], g = new THREE.Group(); g.position.set(x, terrainHeight(x, z) + 1.7, z);
       const core = new THREE.Mesh(fragGeo, new THREE.MeshBasicMaterial({ color:col }));
       const wire = new THREE.Mesh(wireGeo, new THREE.MeshBasicMaterial({ color:COL.ink, wireframe:true, transparent:true, opacity:0.75 }));
@@ -812,7 +872,7 @@ function initWorld(){
     const s = radar.clientWidth || 124, dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (radar.width !== Math.round(s * dpr)) { radar.width = Math.round(s * dpr); radar.height = Math.round(s * dpr); }
     rctx.setTransform(dpr, 0, 0, dpr, 0, 0); rctx.clearRect(0, 0, s, s);
-    const c = s / 2, R0 = s / 2 - 5, range = 140;
+    const c = s / 2, R0 = s / 2 - 5, range = 170;
     rctx.strokeStyle = 'rgba(31,243,255,.22)'; rctx.lineWidth = 1;
     [1/3, 2/3, 1].forEach((f) => { rctx.beginPath(); rctx.arc(c, c, R0 * f, 0, Math.PI * 2); rctx.stroke(); });
     rctx.beginPath(); rctx.moveTo(c, c - R0); rctx.lineTo(c, c + R0); rctx.moveTo(c - R0, c); rctx.lineTo(c + R0, c); rctx.stroke();
@@ -1148,13 +1208,23 @@ function openIndex(){
     row.querySelector('img').src = b.front; row.querySelector('img').alt = `Cover of ${b.title}`;
     row.querySelector('b').textContent = `${i + 1} · ${b.title}`; row.querySelector('.jp').textContent = b.jp;
     const bar = row.querySelector('.ix-bar i'); bar.style.width = pct + '%'; if (isDone(b)) bar.classList.add('done');
-    row.querySelector('.pg').textContent = `${readCount(b)} / ${b.pages} pages read${isDone(b) ? ' · finished' : ''}`;
+    const fTot = FRAGS.filter((f) => f.b === i).length, fGot = FRAGS.filter((f, k) => f.b === i && save.frags.includes(k)).length;
+    row.querySelector('.pg').textContent = `${readCount(b)} / ${b.pages} pages read · ${fGot}/${fTot} fragments${isDone(b) ? ' · finished' : ''}`;
     if (World.ok && entered) { const gt = document.createElement('button'); gt.className = 'btn'; gt.type = 'button'; gt.dataset.a = 'go'; gt.textContent = 'go there'; row.querySelector('.ix-actions').appendChild(gt); }
     row.addEventListener('click', (e) => { const a = e.target.dataset && e.target.dataset.a; if (a === 'read') { closeIndex(); openBook(b); } else if (a === 'go') { closeIndex(); World.flyTo(b, null); } });
     list.appendChild(row);
   });
   const ach = $('#ix-ach'); ach.replaceChildren();
   ACH.forEach((a) => { const s = document.createElement('span'); s.textContent = a[1]; s.title = a[2]; if (save.ach.includes(a[0])) s.className = 'on'; ach.appendChild(s); });
+  const arch = $('#ix-arch'); arch.replaceChildren();
+  $('#ix-arch-lbl').textContent = `fragment archive · ${save.frags.length}/${FRAGS.length}`;
+  const found = save.frags.filter((k) => FRAGS[k]).sort((x, y) => FRAGS[x].b - FRAGS[y].b || FRAGS[x].p - FRAGS[y].p);
+  if (!found.length) { const p = document.createElement('p'); p.textContent = 'Fragments you pick up in the dunes are kept here. Each one opens the page it came from.'; arch.appendChild(p); }
+  found.forEach((k) => {
+    const f = FRAGS[k], bt = document.createElement('button'); bt.type = 'button'; bt.innerHTML = '<b></b><span></span>';
+    bt.children[0].textContent = f.t; bt.children[1].textContent = `${BOOKS[f.b].title} · p. ${f.p}`;
+    bt.addEventListener('click', () => { closeIndex(); openBook(BOOKS[f.b], f.p); }); arch.appendChild(bt);
+  });
   $('#index').hidden = false; $('#ix-close').focus({ preventScroll:true });
 }
 function closeIndex(){ $('#index').hidden = true; if (!entered) return; $('#scene').focus({ preventScroll:true }); }
