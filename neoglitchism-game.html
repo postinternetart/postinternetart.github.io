@@ -183,6 +183,15 @@ body.intro .hud,body.intro #radar{opacity:0;pointer-events:none}
 .btn:hover{background:#fff;color:#000}
 .btn.warn{border-color:var(--red)}
 .btn.warn:hover{background:var(--red);color:#fff}
+.btn.danger{background:var(--red);border-color:var(--red);color:#fff;font-weight:700;padding-inline:18px}
+.btn.danger:hover{background:#fff;border-color:#fff;color:var(--red)}
+#resetDlg{z-index:35}
+#resetDlg .sheet{box-shadow:10px 10px 0 var(--red);width:min(520px,100%);margin-top:16vh}
+#resetDlg h2{margin-bottom:12px}
+.tool.warn{margin-top:6px}
+.tool.warn kbd{background:var(--red);color:#fff}
+.tool.warn:hover{background:var(--red);border-color:var(--red);color:#fff}
+.tool.warn:hover kbd{background:#fff;color:var(--red)}
 
 #complete .sheet{box-shadow:12px 12px 0 var(--yellow);width:min(640px,100%);margin-top:12vh}
 .big{font-family:var(--display);font-weight:900;font-size:clamp(34px,7vw,72px);line-height:.95;letter-spacing:-.045em;margin:0 0 16px}
@@ -247,6 +256,7 @@ body.intro #stick{display:none}
   <button class="tool" data-act="storm" title="Summon a glitch storm"><kbd>G</kbd>glitch</button>
   <button class="tool" data-act="lofi" aria-pressed="false" title="Toggle low-bitrate view"><kbd>P</kbd>lo-fi</button>
   <button class="tool" data-act="sound" aria-pressed="true" title="Toggle sound"><kbd>M</kbd>sound</button>
+  <button class="tool warn" data-act="reset" title="Clear all progress and start over"><kbd>R</kbd>reset</button>
 </nav>
 
 <aside id="hints" class="hud" aria-label="Controls">
@@ -332,6 +342,17 @@ body.intro #stick{display:none}
   </div>
 </section>
 
+<section id="resetDlg" class="overlay" role="alertdialog" aria-modal="true" aria-labelledby="resetTitle" aria-describedby="resetText" hidden>
+  <div class="sheet">
+    <h2 id="resetTitle">Reset and start over?</h2>
+    <p class="about" id="resetText"></p>
+    <div class="sheet-foot">
+      <button class="btn danger" type="button" id="resetConfirm">reset</button>
+      <button class="btn" type="button" id="resetCancel">cancel <span style="color:var(--muted)">esc</span></button>
+    </div>
+  </div>
+</section>
+
 <section id="complete" class="overlay" role="dialog" aria-modal="true" aria-labelledby="completeTitle" hidden>
   <div class="sheet">
     <p class="big" id="completeTitle">you are <span>NOT</span> lame</p>
@@ -339,6 +360,7 @@ body.intro #stick{display:none}
     <div class="sheet-foot">
       <button class="btn" type="button" id="completeClose">keep drifting</button>
       <button class="btn" type="button" id="completeArchive">open the archive</button>
+      <button class="btn warn" type="button" id="completeReset">reset and play again</button>
     </div>
   </div>
 </section>
@@ -1074,6 +1096,7 @@ const Sound = (() => {
     storm() { for (let i = 0; i < 8; i++) { noise(.06 + Math.random() * .1, .1, 300 + Math.random() * 3000, 4, i * .09); tone(80 + Math.random() * 900, .07, 'square', .03, null, i * .09); } },
     unlock() { [0, 4, 7, 12].forEach((s, i) => tone(659.25 * Math.pow(2, s / 12), .18, 'triangle', .055, null, i * .08)); },
     click() { tone(880, .03, 'square', .025); },
+    reset() { noise(.6, .1, 3200, .9, 0, 140); tone(660, .7, 'sawtooth', .045, 55); tone(330, .5, 'square', .03, 41, .08); },
   };
 })();
 
@@ -1256,16 +1279,61 @@ function buildArchive() {
   ACH.forEach(x => { const li = document.createElement('li'); li.className = S.ach.has(x.id) ? 'on' : ''; const b = document.createElement('b'); b.textContent = x.name; li.append(b, document.createTextNode(x.desc)); al.appendChild(li); });
 }
 function openArchive() { buildArchive(); archive.hidden = false; keys.clear(); $('#archClose').focus({ preventScroll: true }); }
-function closeArchive() { archive.hidden = true; resetArm = false; $('#resetBtn').textContent = 'reset progress'; }
+function closeArchive() { archive.hidden = true; }
 $('#archClose').addEventListener('click', closeArchive);
 archive.addEventListener('click', e => { if (e.target === archive) closeArchive(); });
-let resetArm = false;
-$('#resetBtn').addEventListener('click', () => {
-  if (!resetArm) { resetArm = true; $('#resetBtn').textContent = 'press again to reset everything'; return; }
+
+// reset: confirm, then clear progress and return to the title screen
+const resetDlg = $('#resetDlg'); let resetReturn = null;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+function askReset() {
+  if (!S.started) return;
+  const parts = [];
+  if (S.decoded.size) parts.push(plural(S.decoded.size, 'decoded piece', 'decoded pieces'));
+  if (S.bits.size) parts.push(plural(S.bits.size, 'collected bit', 'collected bits'));
+  if (S.ach.size) parts.push(plural(S.ach.size, 'achievement', 'achievements'));
+  const list = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0];
+  $('#resetText').textContent = parts.length
+    ? `This clears your ${list}, turns every piece back to corrupted and returns you to the title screen. It can't be undone.`
+    : 'Nothing is decoded yet. This returns you to the title screen with every piece corrupted.';
+  resetReturn = document.activeElement; keys.clear();
+  resetDlg.hidden = false; $('#resetCancel').focus({ preventScroll: true });
+}
+function closeReset() {
+  resetDlg.hidden = true;
+  if (lastKeyboard && resetReturn && resetReturn.isConnected && !resetReturn.closest('[hidden]')) resetReturn.focus({ preventScroll: true });
+  resetReturn = null;
+}
+function resetGame() {
   try { localStorage.removeItem(STORE); } catch (e) { }
-  location.reload();
-});
+  resetDlg.hidden = true; resetReturn = null;
+  archive.hidden = true; $('#complete').hidden = true; $('#lightbox').hidden = true;
+  closePanel();
+  $('#toasts').innerHTML = '';
+  S.decoded.clear(); S.bits.clear(); S.ach.clear();
+  Object.assign(S, { complete: 0, completeShown: false, travel: null, storm: 0, hover: -1, pulse: -1, glitchPulse: 1.1 });
+  arts.forEach(a => { a.corrupt = .5; a.flash = .9; a.hover = 0; });
+  shards.forEach(s => { const o = s.id * BOXF; shardBatch.data[o + 3] = shardBatch.data[o + 4] = shardBatch.data[o + 5] = .95; });
+  gl.bindBuffer(gl.ARRAY_BUFFER, shardBatch.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, shardBatch.data);
+  burst.list = []; keys.clear(); stickV = [0, 0]; look = null;
+  cam.vel = [0, 0, 0]; cam.fovKick = 0;
+  canvas.classList.remove('target', 'dragging');
+  updateHud(); buildArchive();
+  Sound.reset();
+  // back to the title screen
+  S.started = false;
+  document.body.classList.add('intro'); $('#intro').hidden = false;
+  $('#introNote').textContent = TOUCH ? 'Sound plays when you start. The sound button mutes it.' : 'Sound plays when you start. Press M to mute.';
+  if (!TOUCH) enterBtn.focus({ preventScroll: true });
+}
+$('#resetBtn').addEventListener('click', askReset);
+$('#completeReset').addEventListener('click', () => { $('#complete').hidden = true; askReset(); });
+$('#resetCancel').addEventListener('click', closeReset);
+$('#resetConfirm').addEventListener('click', resetGame);
+resetDlg.addEventListener('click', e => { if (e.target === resetDlg) closeReset(); });
+
 function showComplete() {
+  if (!S.started || S.decoded.size < arts.length) return;
   $('#completeText').textContent = `Archive restored. All ${arts.length} pieces are decoded and ${S.bits.size} of ${shards.length} bits are collected. The landscape remembers.`;
   $('#complete').hidden = false; keys.clear(); $('#completeClose').focus({ preventScroll: true });
   S.glitchPulse = 1; emit(cam.p.map((v, k) => v + B.F[k] * 14), [[1, 0, 1], [0, 1, 1], [1, .9, 0], [1, 1, 1]], 260, 30, .6, 2);
@@ -1278,15 +1346,17 @@ document.querySelectorAll('#tools .tool').forEach(b => b.addEventListener('click
   const act = b.dataset.act; Sound.click();
   if (act === 'seek') seek(); else if (act === 'archive') openArchive(); else if (act === 'storm') storm();
   else if (act === 'lofi') setLofi(!S.lofi); else if (act === 'sound') setSound(S.muted);
+  else if (act === 'reset') askReset();
 }));
-const modalOpen = () => !archive.hidden || !$('#complete').hidden || !$('#lightbox').hidden;
+const modalOpen = () => !archive.hidden || !$('#complete').hidden || !$('#lightbox').hidden || !resetDlg.hidden;
 
 /* ---------- input ---------- */
 addEventListener('keydown', e => {
   lastKeyboard = true;
   const k = e.code;
   if (k === 'Escape') {
-    if (!$('#lightbox').hidden) $('#lightbox').hidden = true;
+    if (!resetDlg.hidden) closeReset();
+    else if (!$('#lightbox').hidden) $('#lightbox').hidden = true;
     else if (!$('#complete').hidden) $('#complete').hidden = true;
     else if (!archive.hidden) closeArchive();
     else closePanel();
@@ -1306,6 +1376,7 @@ addEventListener('keydown', e => {
   else if (k === 'KeyP') setLofi(!S.lofi);
   else if (k === 'KeyM') setSound(S.muted);
   else if (k === 'KeyH') { S.hintsHidden = !S.hintsHidden; $('#hints').hidden = S.hintsHidden; }
+  else if (k === 'KeyR') askReset();
   else if (k === 'Enter') { const i = pickInFront(); if (i >= 0) interact(i); else toast('Nothing in front of you', 'Turn toward a floating piece, or press N to seek one.', '#ffffff'); }
 });
 addEventListener('keyup', e => keys.delete(e.code));
@@ -1647,7 +1718,7 @@ requestAnimationFrame(frame);
   enterBtn.disabled = false; enterBtn.textContent = 'Start exploring';
   if (S.decoded.size) $('#introNote').textContent = `Progress restored: ${S.decoded.size} of ${arts.length} decoded.`;
   if (!TOUCH) enterBtn.focus({ preventScroll: true });
-  window.__neoglitch = { S, cam, arts, interact, travelTo, decode, seek, advance(sec) { for (let t = 0; t < sec; t += 1 / 30) { S.T += 1 / 30; update(1 / 30); } } };
+  window.__neoglitch = { S, cam, arts, shards, interact, travelTo, decode, seek, advance(sec) { for (let t = 0; t < sec; t += 1 / 30) { S.T += 1 / 30; update(1 / 30); } } };
 })().catch(err => { console.error(err); enterBtn.textContent = 'Something failed to load'; });
 })();
 </script>
